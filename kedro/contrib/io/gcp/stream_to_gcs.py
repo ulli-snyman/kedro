@@ -1,25 +1,25 @@
-import logging
+from loguru import logger
 
 from google.auth.transport.requests import AuthorizedSession
 from google.resumable_media import requests, common, InvalidResponse
 
 
-logging.basicConfig(level=logging.INFO)
-LOGGER = logging.getLogger(__name__)
-
-
 class GCSObjectStreamUpload(object):
+    """
+    Stream objects to GCS in a specified chunksize.
+    """
     def __init__(
             self,
             blob_name,
             bucket,
             chunk_size=5 * 1024 * 1024,
     ):
-        if isinstance(bucket, str):
-            LOGGER.info('Received bucket as string. Converting to client')
-            from .core import get_bucket
-            bucket = get_bucket(bucket)
-
+        """
+        Args:
+            blob_name: path and filename of object to be saved
+            bucket: bucket object being targeted.
+            chunk_size: size in chunks in bytes to transmit.
+        """
         self._client = bucket.client
         self._bucket = bucket
         self._blob = self._bucket.blob(blob_name)
@@ -34,7 +34,7 @@ class GCSObjectStreamUpload(object):
         )
         self._request = None  # type: requests.ResumableUpload
 
-        LOGGER.info('Initiated GCS Stream with {}'.format(self.__dict__))
+        logger.info('Initiated GCS Stream with {}'.format(self.__dict__))
 
     def __enter__(self):
         self.start()
@@ -65,7 +65,7 @@ class GCSObjectStreamUpload(object):
             self._request.transmit_next_chunk(self._transport)
         except InvalidResponse as e:
             print('Testing fail output in Spark')
-            LOGGER.error('Error transmitting - {} - {}'.format(e, self.__dict__))
+            logger.error('Error transmitting - {} - {}'.format(e, self.__dict__))
 
     def write(self, data):
         data_len = len(data)
@@ -81,14 +81,14 @@ class GCSObjectStreamUpload(object):
 
     def read(self, chunk_size):
         to_read = min(chunk_size, self._buffer_size)
-        LOGGER.info('Reading stream chunk type - {}'.format(type(self._buffer)))
+        logger.info('Reading stream chunk type - {}'.format(type(self._buffer)))
 
         if isinstance(self._buffer, unicode):
             try:
-                LOGGER.info('Trying to encode with ascii')
+                logger.info('Trying to encode with ascii')
                 self._buffer = self._buffer.encode('ascii')
             except UnicodeEncodeError:
-                LOGGER.info('Trying to encode with utf-8')
+                logger.info('Trying to encode with utf-8')
                 self._buffer = self._buffer.encode('utf-8')
 
         memview = memoryview(self._buffer)
