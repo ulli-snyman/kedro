@@ -110,5 +110,12 @@ setup(
             "azure-storage-queue>=1.1.0, <2.0",
         ],
         "bioinformatics": ["biopython>=1.73, <2.0"],
+        "gcs": [
+            "loguru>=0.2.5",
+            "ujson>=1.35",
+            "google-api-python-client>=1.7.9",
+            "oauth2client>=4.1.3",
+            "google-cloud-storage>=0.34.0",
+        ],
     },
 )

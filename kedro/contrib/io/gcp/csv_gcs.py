@@ -30,16 +30,16 @@
 It uses google python client librarys to read and write CSV's from GCS.
 """
 from typing import Any, Dict, Optional
-from tempfile import NamedTemporaryFile
+from io import BytesIO
 
 import pandas as pd
 
-from kedro.io.core import AbstractDataSet, DataSetError
-from kedro.io.core import Version
+from kedro.io.core import AbstractDataSet, DataSetError, Version
 from .core import GCSMixin
 from .stream_to_gcs import GCSObjectStreamUpload
 
 
+# pylint: disable=too-few-public-methods
 class CSVGCSDataSet(AbstractDataSet, GCSMixin):
     """``CSVS3DataSet`` loads and saves data to a file in GCS.
     It uses the google python client library to load csv into pd dataframes.
@@ -79,7 +79,7 @@ class CSVGCSDataSet(AbstractDataSet, GCSMixin):
         self,
         filepath: str,
         bucket_name: str,
-        project_id: str,
+        project_id: Optional[str] = None,
         credential_path: Optional[str] = None,
         load_args: Optional[Dict[str, Any]] = None,
         save_args: Optional[Dict[str, Any]] = None,
@@ -122,19 +122,20 @@ class CSVGCSDataSet(AbstractDataSet, GCSMixin):
         load_key = self._get_load_path(
             self._bucket, self._filepath, self._version
         )
-
-        with self._bucket.get_blob(load_key) or self._bucket.blob(load_key) as csv:
-            return pd.read_csv(csv, **self._load_args)
+        blob = self._bucket.get_blob(load_key) or self._bucket.blob(load_key)
+        byte_stream = BytesIO()
+        blob.download_to_file(byte_stream)
+        byte_stream.seek(0)
+        return pd.read_csv(byte_stream, **self._load_args)
 
     def _save(self, data: pd.DataFrame) -> None:
         save_key = self._get_save_path(
             self._bucket, self._filepath, self._version
         )
-        # save df to named temp file then stream to gcs bucket
-        with NamedTemporaryFile(mode='r+') as temp:
-            data.to_csv(temp, **self._save_args)
-            with GCSObjectStreamUpload(self._path, self._bucket) as f:
-                f.write(temp)
+
+        csv_str = data.to_csv(**self._save_args).encode()
+        with GCSObjectStreamUpload(save_key, self._bucket) as file:
+                file.write(csv_str)
 
         load_key = self._get_load_path(
              self._bucket, self._filepath, self._version
@@ -150,7 +151,4 @@ class CSVGCSDataSet(AbstractDataSet, GCSMixin):
             return False
 
         blob = self._bucket.get_blob(load_key)
-        return True if blob else False
-
-
-
+        return bool(blob)

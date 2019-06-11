@@ -31,21 +31,24 @@
 https://google-cloud-python.readthedocs.io/en/latest/storage-client.html
 https://pypi.python.org/pypi/google-cloud-storage
 """
-from loguru import logger
 from pathlib import PurePosixPath
 from typing import Any, Optional
 from warnings import warn
 
-from google.cloud import storage
-from oauth2client.service_account import ServiceAccountCredentials
 import ujson as json
+from google.cloud import storage
+from loguru import logger
+from oauth2client.service_account import ServiceAccountCredentials
 
-from kedro.io.core import Version
-from kedro.io.core import generate_current_version
-from kedro.io.core import DataSetError
-from kedro.io.core import _PATH_CONSISTENCY_WARNING
+from kedro.io.core import (
+    _PATH_CONSISTENCY_WARNING,
+    DataSetError,
+    Version,
+    generate_current_version,
+)
 
 
+# pylint: disable=too-few-public-methods
 class GCSMixin:
     """Mixin Class for common GCS Methods"""
     @staticmethod
@@ -57,8 +60,8 @@ class GCSMixin:
         Returns:
             ServiceAccountCredentials: auth object
         """
-        with open(serivce_account) as f:
-            data = json.load(f)
+        with open(serivce_account) as file:
+            data = json.load(file)
         return ServiceAccountCredentials.from_json_keyfile_dict(data)
 
     def _get_client(
@@ -81,8 +84,7 @@ class GCSMixin:
         if credential_path:
             serv_acc = self._get_service_account(credential_path)
             return storage.Client(project_id, credentials=serv_acc)
-        else:
-            return storage.Client(project_id)
+        return storage.Client(project_id)
 
     @staticmethod
     def _get_bucket(
@@ -163,14 +165,12 @@ class GCSMixin:
             raise DataSetError(message)
         return versioned_path
 
-    def _check_paths_consistency(self, load_path: str, save_path: str):
+    def _check_paths_consistency(self, load_path: str, save_path: str) -> None:
         """
         Confirm paths are consistent when saving to ensure reliability.
         Args:
             load_path: path in which the data is laoded from
             save_path: path in with the data was saved
-        Returns:
-             None
         """
         if load_path != save_path:
             warn(_PATH_CONSISTENCY_WARNING.format(
