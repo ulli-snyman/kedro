@@ -37,8 +37,8 @@ from warnings import warn
 
 import ujson as json
 from google.cloud import storage
+from google.oauth2 import service_account
 from loguru import logger
-from oauth2client.service_account import ServiceAccountCredentials
 
 from kedro.io.core import (
     _PATH_CONSISTENCY_WARNING,
@@ -52,20 +52,7 @@ from kedro.io.core import (
 class GCSMixin:
     """Mixin Class for common GCS Methods"""
     @staticmethod
-    def _get_service_account(serivce_account: str) -> Any:
-        """
-        Connects to google with the provided service account.
-        Args:
-            serivce_account: path to the service account file.
-        Returns:
-            ServiceAccountCredentials: auth object
-        """
-        with open(serivce_account) as file:
-            data = json.load(file)
-        return ServiceAccountCredentials.from_json_keyfile_dict(data)
-
     def _get_client(
-            self,
             project_id: str,
             credential_path: Optional[str] = None
     ) -> Any:
@@ -79,10 +66,12 @@ class GCSMixin:
         Returns:
             storage.Client: GCP storage client object
         """
-        logger.info('Getting client - {}'.format(project_id))
+        logger.debug('Getting client - {}'.format(project_id))
 
         if credential_path:
-            serv_acc = self._get_service_account(credential_path)
+            serv_acc = service_account.Credentials.from_service_account_file(
+                credential_path
+            )
             return storage.Client(project_id, credentials=serv_acc)
         return storage.Client(project_id)
 
@@ -99,7 +88,7 @@ class GCSMixin:
         Returns:
              GCS bucket object
         """
-        logger.info('Getting bucket - {}'.format(bucket_name))
+        logger.debug('Getting bucket - {}'.format(bucket_name))
         if not isinstance(bucket_name, str):
             bucket_name = bucket_name.name
         return client.get_bucket(bucket_name)

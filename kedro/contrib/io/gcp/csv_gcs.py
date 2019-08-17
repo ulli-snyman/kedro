@@ -57,6 +57,7 @@ class CSVGCSDataSet(AbstractDataSet, GCSMixin):
         >>> data_set = CSVGCSDataSet(filepath="test.csv",
         >>>                         bucket_name="test_bucket",
         >>>                         load_args=None,
+        >>>                         credential_path="./key.json"
         >>>                         save_args={"index": False})
         >>> data_set.save(data)
         >>> reloaded = data_set.load()

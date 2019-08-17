@@ -67,7 +67,7 @@ class GCSObjectStreamUpload:
         )
         self._request = None  # type: requests.ResumableUpload
 
-        logger.info('Initiated GCS Stream with {}'.format(self.__dict__))
+        logger.debug('Initiated GCS Stream with {}'.format(self.__dict__))
 
     def __enter__(self):
         self.start()
@@ -134,7 +134,7 @@ class GCSObjectStreamUpload:
         """
         chunk_size = self._chunk_size or chunk_size
         to_read = min(chunk_size, self._buffer_size)
-        logger.info('Reading stream chunk type - {}'.format(type(self._buffer)))
+        logger.debug('Reading stream chunk type - {}'.format(type(self._buffer)))
 
         if isinstance(self._buffer, str):
             try:
